@@ -34,12 +34,15 @@ Free n8n templates to download
 ```
 <category>/
   *.json         # workflow files
-  README.md      # tech mix per file
+  README.md      # tech mix 
 
 MASTER_README.md # ← you are here
 ```
 
+---
 
+## 📂 Installation
+Directly copy (.json) code and past it directly in workflow
 
 
 
