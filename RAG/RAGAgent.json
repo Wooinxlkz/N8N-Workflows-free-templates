@@ -1,0 +1,742 @@
+{
+  "name": "RAGAgent",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1tJHh1ZDm34bNfE6ljYH1mpw32WpL67ox",
+          "mode": "list",
+          "cachedResultName": "RAG Demo Documents",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1tJHh1ZDm34bNfE6ljYH1mpw32WpL67ox"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "id": "6a794701-e76e-4d1e-90da-9191975e2e18",
+      "name": "📁 New Document Added",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        60,
+        100
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "a0H1R45zFS4MeKDk",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "file-metadata",
+              "name": "file_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "file-name",
+              "name": "file_name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "file-type",
+              "name": "file_type",
+              "value": "={{ $json.mimeType }}",
+              "type": "string"
+            },
+            {
+              "id": "file-url",
+              "name": "file_url",
+              "value": "={{ $json.webViewLink }}",
+              "type": "string"
+            },
+            {
+              "id": "processed-time",
+              "name": "processed_at",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "014159be-b8e0-4ee5-bcc7-b848ac8e9aed",
+      "name": "📋 Extract File Info",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "id": "0afe2ff1-20ee-4be1-8c87-b09e9dd2e076",
+      "name": "⬇️ Download Document",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        440,
+        100
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "a0H1R45zFS4MeKDk",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.file_type }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "is-pdf"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pdf"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "is-text",
+                    "leftValue": "={{ $json.file_type }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3d154fd8-a5d8-49f4-b9db-e22ca81fc186",
+      "name": "🔀 File Type Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        620,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "7ba92ae5-3fcb-414f-858c-7382ec208f8f",
+      "name": "📄 Extract PDF Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        820,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "id": "59f4b5f1-6979-4d66-9197-be056053aa58",
+      "name": "📝 Extract Text Content",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        820,
+        200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "a0aab88a-287c-4493-b398-5578f1a28264",
+      "name": "🔗 Merge Content",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1020,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "chunkSize": 200,
+        "options": {}
+      },
+      "id": "1128acda-35f9-4c90-be7b-a82bb768a9fc",
+      "name": "✂️ Smart Text Splitting",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "5fa6ae27-0d46-4d4a-b64a-fe8a74901986",
+      "name": "🧠 Create Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        280
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "jJ43azhw4WsPfIMK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "file_name",
+                "value": "={{ $('📋 Extract File Info').item.json.file_name }}"
+              },
+              {
+                "name": "file_id",
+                "value": "={{ $('📋 Extract File Info').item.json.file_id }}"
+              },
+              {
+                "name": "file_url",
+                "value": "={{ $('📋 Extract File Info').item.json.file_url }}"
+              },
+              {
+                "name": "processed_at",
+                "value": "={{ $('📋 Extract File Info').item.json.processed_at }}"
+              },
+              {
+                "name": "source",
+                "value": "google_drive_upload"
+              }
+            ]
+          }
+        }
+      },
+      "id": "8933562e-ae4a-472a-a4d3-7fcbbdf1ee1a",
+      "name": "📚 Prepare for RAG",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "instagram_rag_demo",
+          "mode": "list",
+          "cachedResultName": "instagram_rag_demo"
+        },
+        "options": {
+          "queryName": "match_instagram_rag_demo"
+        }
+      },
+      "id": "80d0904f-70c9-48b0-ad63-8f3f53273751",
+      "name": "🗄️ Save to Vector Database",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        1180,
+        100
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "1ZzvfQSJQ1zcYXIe",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "1232923238",
+        "text": "=✅ **New Document Added to RAG System!**\n\n📄 **File:** {{ $('📋 Extract File Info').item.json.file_name }}\n🔗 **Type:** {{ $('📋 Extract File Info').item.json.file_type }}\n📊 **Processed:** {{ $('📋 Extract File Info').item.json.processed_at }}\n\n🧠 **Your AI can now answer questions about this document!**\n\nTry asking about: \"{{ $('📋 Extract File Info').item.json.file_name }}\"",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "dba70334-6012-4df0-a9c7-0b04950e2cde",
+      "name": "✅ Success Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1740,
+        100
+      ],
+      "webhookId": "f16de2bc-091f-4910-871c-c614ef741ac3",
+      "credentials": {
+        "telegramApi": {
+          "id": "Cg9dM7bNcPpXNS5R",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e09578d0-8f50-4339-b556-df1e36978232",
+      "name": "💬 Chat Interface",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        140,
+        -440
+      ],
+      "webhookId": "instagram-rag-demo-chat"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are a helpful AI assistant with access to a knowledge base of documents. Use the RAG tool to search for relevant information from uploaded documents to answer user questions.\n\nWhen answering:\n1. Always search your knowledge base first using the RAG tool\n2. Provide specific, accurate answers based on the documents\n3. If information isn't in your knowledge base, say so clearly\n4. Include the document name/source when referencing information\n5. Be concise but comprehensive\n\nYou have access to documents that users have uploaded, and you can retrieve the most relevant information to answer their questions accurately."
+        }
+      },
+      "id": "de299b3b-88e2-4059-8904-1f8eee203d9a",
+      "name": "🤖 RAG-Powered AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        700,
+        -560
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "maxTokens": 500,
+          "temperature": 0.2
+        }
+      },
+      "id": "ab1d905b-5f2e-4c83-a499-200788111ad9",
+      "name": "🧠 Smart Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        560,
+        -360
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "jJ43azhw4WsPfIMK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "knowledge_search",
+        "toolDescription": "Search through uploaded documents to find relevant information to answer user questions. Use this tool whenever users ask about specific topics or documents.",
+        "tableName": {
+          "__rl": true,
+          "value": "instagram_rag_demo",
+          "mode": "list",
+          "cachedResultName": "instagram_rag_demo"
+        },
+        "topK": 5,
+        "options": {
+          "queryName": "match_instagram_rag_demo"
+        }
+      },
+      "id": "20051289-d6ab-4bfa-bb44-5cbf8f707cd8",
+      "name": "🔍 RAG Knowledge Retrieval",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        1060,
+        -360
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "1ZzvfQSJQ1zcYXIe",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e24538ca-3e95-4359-ba56-f8de279f4773",
+      "name": "🧠 Chat Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1060,
+        -220
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "jJ43azhw4WsPfIMK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "instagram_demo_{{ $json.sessionId }}",
+        "contextWindowLength": 10
+      },
+      "id": "2cd8eabd-94fd-4c26-a4b6-15165016b436",
+      "name": "🧠 Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.2,
+      "position": [
+        740,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 📁 DOCUMENT PROCESSING PIPELINE\n\nThis section automatically processes new documents:\n1. Monitors Google Drive folder\n2. Downloads and extracts text\n3. Creates embeddings\n4. Stores in vector database\n\n",
+        "height": 240,
+        "width": 600,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        140,
+        320
+      ],
+      "typeVersion": 1,
+      "id": "784b3d35-d47f-4c95-b495-066694e9ebb8",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## 💬 RAG CHAT INTERFACE\n\nUsers can chat and get answers based on uploaded documents:\n1. User asks a question\n2. AI searches vector database\n3. Retrieves relevant context\n4. Provides accurate, source-based answers\n\n",
+        "height": 240,
+        "width": 600,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -100,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "9725e583-cd39-42f9-a83a-f6825205bfc9",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        920,
+        -340
+      ],
+      "id": "4b004ed1-e399-43df-b72d-e89a8948da84",
+      "name": "Think"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1580,
+        100
+      ],
+      "id": "543764bf-ff87-4655-94b8-6003d258201c",
+      "name": "Limit"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "📁 New Document Added": {
+      "main": [
+        [
+          {
+            "node": "📋 Extract File Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Extract File Info": {
+      "main": [
+        [
+          {
+            "node": "⬇️ Download Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⬇️ Download Document": {
+      "main": [
+        [
+          {
+            "node": "🔀 File Type Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 File Type Router": {
+      "main": [
+        [
+          {
+            "node": "📄 Extract PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Extract Text Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📄 Extract PDF Text": {
+      "main": [
+        [
+          {
+            "node": "🔗 Merge Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Extract Text Content": {
+      "main": [
+        [
+          {
+            "node": "🔗 Merge Content",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "📚 Prepare for RAG": {
+      "ai_document": [
+        [
+          {
+            "node": "🗄️ Save to Vector Database",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✂️ Smart Text Splitting": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "📚 Prepare for RAG",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Create Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "🗄️ Save to Vector Database",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🗄️ Save to Vector Database": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💬 Chat Interface": {
+      "main": [
+        [
+          {
+            "node": "🤖 RAG-Powered AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Smart Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🤖 RAG-Powered AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 RAG Knowledge Retrieval": {
+      "ai_tool": [
+        [
+          {
+            "node": "🤖 RAG-Powered AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Chat Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "🔍 RAG Knowledge Retrieval",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "🤖 RAG-Powered AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔗 Merge Content": {
+      "main": [
+        [
+          {
+            "node": "🗄️ Save to Vector Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "🤖 RAG-Powered AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "✅ Success Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3003109d-828e-4bb4-b02a-332861fffa8b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cc8fbc6c0e10ac107523cabe2453f0b9216ff0ef0c1f112312039de381e2f175"
+  },
+  "id": "4G4Qa7BfTH98mExh",
+  "tags": []
+}

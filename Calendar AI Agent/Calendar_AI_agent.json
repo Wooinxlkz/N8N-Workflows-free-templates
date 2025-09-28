@@ -1,0 +1,329 @@
+{
+  "name": "Calendar_AI_agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        48,
+        176
+      ],
+      "id": "74f7c041-044d-4c33-bed4-17b61060102c",
+      "name": "When chat message received",
+      "webhookId": "102a3b10-8837-499c-b76d-b5b3488e2f55"
+    },
+    {
+      "parameters": {
+        "content": "🚀 **CHAT TRIGGER SETUP**\n\n**Essential Configuration:**\n• No additional setup required\n• Auto-generates webhook URL\n• Handles chat message input\n\n**Usage:**\n• Test via chat interface\n• Webhook URL: Auto-generated\n• Supports text input only\n\n**Best Practice:**\n• Keep this as entry point\n• Connect directly to AI Agent",
+        "height": 320,
+        "width": 376,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -464,
+        48
+      ],
+      "typeVersion": 1,
+      "id": "9324bf01-a1ae-4829-bd2c-28f9d59a06ac",
+      "name": "Chat Trigger Config"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=<agent_identity>\nYou are a Calendar Assistant specializing in schedule management, appointment coordination, and time organization. You help users efficiently manage their time and commitments.\n</agent_identity>\n\n<agent_capabilities>\n- Schedule appointment suggestions and conflict detection\n- Time zone conversion and meeting coordination  \n- Calendar event planning and organization\n- Availability analysis and optimization\n- Meeting preparation and follow-up reminders\n</agent_capabilities>\n\n<response_framework>\nALWAYS follow this order:\n1. Check current availability first (use Current Date {{ $now.format('yyyy-MM-dd') }} as reference)\n2. Identify available time slots before requesting details\n3. Present clear scheduling options with specific dates/times\n4. Only ask for additional details after confirming availability\n5. Provide alternative options when conflicts exist\n</response_framework>\n\n<agent_behavior>\n- Start every interaction by checking availability\n- Communicate in professional, time-conscious manner\n- Prioritize user's existing commitments\n- Suggest efficient scheduling solutions based on open slots\n- Provide structured, easy-to-follow scheduling information\n</agent_behavior>\n\n<guardrails>\n- Never overbook or suggest conflicting appointments\n- Always confirm timezone assumptions\n- Respect work-life balance boundaries\n- Escalate complex multi-party scheduling to human coordination\n</guardrails>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        176
+      ],
+      "id": "013c2a0e-4ae1-4128-be68-bca241e3fc5c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "content": "🤖 **AI AGENT CONFIGURATION**\n\n**System Message Setup:**\n• Agent Identity: Calendar Assistant\n• Capabilities: Schedule management\n• Response Framework: 5-step process\n• Behavior Rules: Professional tone\n\n**Key Settings:**\n• Agent Type: OpenAI Functions\n• Max Iterations: 10 (recommended)\n• Tool Selection: Auto\n\n**Requirements:**\n• Must connect to LLM model\n• Must connect to memory\n• Must connect to tools\n\n**Pro Tips:**\n• Use {{ $now.format() }} for current time\n• Test system message thoroughly",
+        "height": 492,
+        "width": 300,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        704,
+        -224
+      ],
+      "typeVersion": 1,
+      "id": "6e467041-2816-451d-9d8a-faa89c82cb7a",
+      "name": "AI Agent Config"
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-3.7-sonnet",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        256,
+        384
+      ],
+      "id": "dbd393e2-91e6-4ac5-ad5e-59176314b6d2",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "Uh6EhUnlPGQ0AEYw",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "🔑 **OPENROUTER SETUP**\n\n**Credentials Required:**\n• OpenRouter API Key\n• Get from: openrouter.ai\n• Add to n8n credentials\n\n**Model Configuration:**\n• Current: claude-3.7-sonnet\n• Alternative: gpt-4o\n• Cost: Check OpenRouter pricing\n\n**Settings:**\n• Temperature: 0.1 (precise)\n• Max Tokens: 4000\n• Top P: 0.9\n\n**Troubleshooting:**\n• Verify API key validity\n• Check model availability\n• Monitor usage limits",
+        "height": 560,
+        "width": 280
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -96,
+        416
+      ],
+      "typeVersion": 1,
+      "id": "1f6f0c69-5858-4954-bb08-8ea43733ac5e",
+      "name": "OpenRouter Config"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        416,
+        384
+      ],
+      "id": "acb13bd1-aa5b-4b97-bd44-46e20608f9b1",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "content": "🧠 **MEMORY CONFIGURATION**\n\n**Buffer Window Settings:**\n• Window Size: 10 messages\n• Type: Conversation Buffer\n• Auto-cleanup: Enabled\n\n**Memory Behavior:**\n• Stores recent conversation\n• Maintains context\n• Automatic token management\n\n**Performance:**\n• Low memory usage\n• Fast retrieval\n• Session-based\n\n**Usage:**\n• No additional config needed\n• Connects to AI Agent\n• Resets per session",
+        "height": 552,
+        "width": 260,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        224,
+        528
+      ],
+      "typeVersion": 1,
+      "id": "cefaafca-5325-4819-befc-8a34d66e36c6",
+      "name": "Memory Config"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "mouad.hero01@gmail.com",
+          "mode": "list",
+          "cachedResultName": "My Calendar"
+        },
+        "returnAll": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_All', ``, 'boolean') }}",
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {
+          "timeZone": {
+            "__rl": true,
+            "value": "Africa/Casablanca",
+            "mode": "list",
+            "cachedResultName": "Africa/Casablanca"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        768,
+        368
+      ],
+      "id": "ed7f647d-e7c1-4680-96bb-2b5aaf0fe3c5",
+      "name": "Availability",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "EQIGmazJnAOmj5av",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "📅 **AVAILABILITY CHECKER**\n\n**🔑 Credentials Setup:**\n• Google Calendar OAuth2 API\n• Enable Google Calendar API\n• Create OAuth 2.0 credentials\n• Add redirect URI: your-n8n-url/rest/oauth2-credential/callback\n\n**⚙️ Configuration:**\n• Operation: Get All Events\n• Calendar: Select your calendar\n• Time Zone: Africa/Casablanca\n• Return All: AI-controlled\n• Time Min/Max: AI-controlled\n\n**🎯 AI Override Parameters:**\n• $fromAI('Return_All', '', 'boolean')\n• $fromAI('After', '', 'string')\n• $fromAI('Before', '', 'string')\n\n**✅ Testing:**\n• Test with date ranges\n• Verify timezone handling\n• Check calendar permissions",
+        "height": 516,
+        "width": 320,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        880,
+        368
+      ],
+      "typeVersion": 1,
+      "id": "19406780-3911-4f81-bb09-deee23ad3cb2",
+      "name": "Availability Config"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "mouad.hero01@gmail.com",
+          "mode": "list",
+          "cachedResultName": "My Calendar"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('attendees0_Attendees', ``, 'string') }}"
+          ],
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        608,
+        400
+      ],
+      "id": "99fd5eaa-6ef5-4e75-8e4f-536a9ce26481",
+      "name": "Booking",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "EQIGmazJnAOmj5av",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "📝 **BOOKING CONFIGURATION**\n\n**🔑 Same Credentials as Availability:**\n• Use same Google Calendar OAuth2\n• Ensure write permissions\n\n**⚙️ Required Parameters:**\n• Calendar: Same as availability\n• Start: AI-controlled datetime\n• End: AI-controlled datetime\n• Summary: AI-controlled title\n\n**👥 Optional Fields:**\n• Attendees: AI-controlled emails\n• Description: Event details\n• Location: Meeting location\n• Reminders: Notification settings\n\n**🎯 AI Override Format:**\n• Start/End: ISO datetime format\n• Summary: Event title string\n• Attendees: Email addresses\n\n**⚠️ Important:**\n• Test with simple booking first\n• Verify timezone handling\n• Check conflict detection",
+        "height": 504,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        496,
+        592
+      ],
+      "typeVersion": 1,
+      "id": "92cbec91-bdf9-4a2c-bf40-9495b656bc24",
+      "name": "Booking Config"
+    },
+    {
+      "parameters": {
+        "content": "🔧 **GOOGLE CALENDAR API SETUP GUIDE**\n\n**1. Enable Google Calendar API:**\n• Go to Google Cloud Console\n• Create/select project\n• Enable Calendar API\n• Create OAuth 2.0 credentials\n\n**2. OAuth Configuration:**\n• Authorized redirect URIs:\n  https://your-n8n-domain/rest/oauth2-credential/callback\n• Scopes needed:\n  - https://www.googleapis.com/auth/calendar\n  - https://www.googleapis.com/auth/calendar.events\n\n**3. n8n Credential Setup:**\n• Add new credential\n• Choose Google Calendar OAuth2 API\n• Enter Client ID & Secret\n• Complete OAuth flow\n\n**4. Calendar Selection:**\n• Primary: your-email@gmail.com\n• Secondary: Select from dropdown\n• Permissions: Read/Write required\n\n**⚠️ Common Issues:**\n• Invalid redirect URI\n• Insufficient scopes\n• Calendar not shared\n• Timezone mismatches",
+        "height": 804,
+        "width": 340,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1328,
+        192
+      ],
+      "typeVersion": 1,
+      "id": "2e4f4119-ae08-4ab8-84e1-0038d763713f",
+      "name": "Google API Setup"
+    },
+    {
+      "parameters": {
+        "content": "🎯 **AI TOOL INTEGRATION TIPS**\n\n**$fromAI Parameters Explained:**\n• Return_All: Boolean for pagination\n• After/Before: Date range strings\n• Start/End: Event datetime (ISO format)\n• Summary: Event title\n• Attendees: Email array\n\n**Best Practices:**\n• Use clear parameter names\n• Provide default values\n• Handle timezone conversions\n• Validate datetime formats\n\n**Testing Strategy:**\n1. Test availability check first\n2. Verify date parsing\n3. Test booking creation\n4. Check conflict handling\n5. Validate attendee emails\n\n**Monitoring:**\n• Check execution logs\n• Monitor API rate limits\n• Verify event creation\n• Test error handling",
+        "height": 624,
+        "width": 300,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1680,
+        288
+      ],
+      "typeVersion": 1,
+      "id": "699cdf95-6063-4bef-aed9-792828eb74ba",
+      "name": "AI Integration Tips"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Availability": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f22897ce-7811-4399-a3da-0ba8532b00d2",
+  "meta": {
+    "templateId": "calendar_agent_with_gcal",
+    "templateCredsSetupCompleted": true,
+    "instanceId": "66c58b798d3adbdaf64a47b3041d335e10015ca13cec5104fbf9f568a82eba73"
+  },
+  "id": "u4JXdH2VVdQtghYG",
+  "tags": []
+}

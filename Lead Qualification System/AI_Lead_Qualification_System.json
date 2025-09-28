@@ -1,0 +1,707 @@
+{
+  "name": "AI_Lead_Qualification_System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "2e540804-d6b5-49b5-b2bf-18ac1e2dd4d9",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        -336
+      ],
+      "id": "07a11afb-f7d1-4aa3-a075-fd9c0bb77720",
+      "name": "Webhook",
+      "webhookId": "2e540804-d6b5-49b5-b2bf-18ac1e2dd4d9"
+    },
+    {
+      "parameters": {
+        "operation": "scrape",
+        "url": "={{ $json.body.website }}",
+        "scrapeOptions": {
+          "options": {
+            "headers": {}
+          }
+        },
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -336
+      ],
+      "id": "21141293-0e5d-421d-bb21-c6f9317214e1",
+      "name": "Scrape a url and get its content",
+      "credentials": {
+        "firecrawlApi": {
+          "id": "dePfkAPgFNjl3M54",
+          "name": "Firecrawl account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        272,
+        -144
+      ],
+      "id": "4c41f576-f0c7-4b4a-bf03-66db63fd25ce",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "a0dNAA87bsJcRBWO",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"leadFit\": \"High\",\n  \"urgency\": \"High\",\n  \"qualificationStatus\": \"Hot\",\n  \"reason\": \"The lead operates an established SaaS platform, provided a professional website, a clear automation goal, and has a budget of $5k–$10k, indicating they are serious and ready to proceed.\",\n  \"timeline\": \"3 weeks\",\n  \"budget\": \"$5k–$10k\",\n  \"followUpAction\": \"Schedule a discovery call and send relevant SaaS automation case studies\",\n  \"Email_Status\": \"Not yet\",\n  \"subject\": \"Helping your SaaS scale with AI automation 🚀\",\n  \"emailBody\": \"Hi Alex,\\n\\nThanks for sharing your vision for automating your SaaS onboarding process. After reviewing your site and project description, we believe Agentrix212 can deliver a tailored automation that saves you time, reduces errors, and improves customer experience.\\n\\nWe’d love to schedule a 20-minute discovery call to walk you through similar projects we’ve completed and explore how we can make this work for you.\\n\\nWould you be available this week?\\n\\nWarm regards,\\nThe Agentrix212 Team\",\n  \"evaluatedAt\": \"10 August 2025 03:15 PM\"\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        -144
+      ],
+      "id": "23461626-44c7-47ae-932a-82df4cf1b7f6",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Budget: {{ $('Webhook').item.json.body.budget }}\nGoal: {{ $('Webhook').item.json.body.automationGoal }}\nTools in Use: {{ $('Webhook').item.json.body.currentTools }}\nTimeline: {{ $('Webhook').item.json.body.timeline }}\n\nWebsite Summary:\n{{ $json.data.markdown }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an AI lead evaluator working for Agentrix212.com, an AI Automation and Agent Development agency.\n\nYour task is to analyze leads and only mark them as \"Hot\" when they:\n- Have a working, professional website URL\n- Provide a clear, detailed project description that aligns with automation, AI agents, or no-code workflows\n- State or imply a strong budget (>$1k) and readiness to start soon\n- Show professionalism and seriousness in their submission\n\nHere is a lead's submitted info:\n- Name: {{ $('Webhook').item.json.body.fullName }}\n- Email: {{ $('Webhook').item.json.body.email }}\n- Phone: {{ $('Webhook').item.json.body.phone }}\n- Business Name: {{ $('Webhook').item.json.body.companyName }}\n- Website URL: {{ $('Webhook').item.json.body.website }}\n- Project Description: {{ $('Webhook').item.json.body.automationGoal }}\n\nHere is the full content scraped from their website:\n---\n{{ $json.data.markdown }}\n---\n\nPlease evaluate this lead in detail. Provide a clear, structured analysis using the following criteria:\n\n### 🔍 Evaluation:\n1. **Lead Fit**: High / Medium / Low — based on how aligned the lead’s business and goals are with Agentrix212’s services.\n2. **Urgency**: High / Medium / Low — based on how quickly they seem ready to start.\n3. **Qualification Summary**:\n   - One of: `\"Hot\"`, `\"Warm\"`, or `\"Not Qualified\"`\n   - `\"Hot\"` = meets all seriousness criteria (website, clarity, budget, readiness)\n   - `\"Warm\"` = some potential but missing one or two seriousness factors\n   - `\"Not Qualified\"` = lacks clear intent, budget, or alignment\n4. **Reason**: Explain in 1–2 lines why Agentrix212 is (or isn’t) a fit.\n5. **Timeline Estimate**: Extract or infer (e.g., 1 week, 1 month).\n6. **Budget Estimate**: Extract or infer (e.g., <$1k, $1k–$5k, $5k–$10k, >$10k).\n7. **Suggested Follow-up Action**: Specific next step (e.g., “Book discovery call”, “Send portfolio”, “No follow-up required”).\n\nCorrelate all info to form a qualification conclusion. Assess if the project description matches the stated budget and timeline, adjusting the qualification accordingly.\n\n---\n\n### 📬 Email Generation:\nAlways generate:\n- `email_subject`: short and friendly\n- `email_content`: a complete, well-formatted **HTML email body** with proper tags (`<html>`, `<body>`, `<p>`, `<a>`, etc.)\n\n#### If **Hot**:\n- Write the email in a warm, confident, and consultative tone using HTML formatting.\n- Show understanding of their business and goals.\n- Explain how Agentrix212 can help.\n- End with a clear next step including a clickable link with anchor text \"Book Your Meeting\":\n  `<a href=\"https://calendly.com/agentrix212/30min\">Book Your Meeting</a>`\n\n#### If **Warm**:\n- Write a friendly, concise HTML email inviting further discussion.\n- Keep the tone open and encouraging.\n\n#### If **Not Qualified**:\n- Write a short, polite HTML email thanking them and explaining it’s not a fit now.\n- Optionally suggest resources or future opportunities.\n\n---\n\n### 📅 Metadata:\nToday's date is: {{ $now.format('yyyy-MM-dd') }}  \nInclude in output:\n- `evaluatedAt`: formatted as `Day-Month-Year HH:MM AM/PM` (e.g., \"05 August 2025 02:45 PM\")\n\n---\n"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        336,
+        -336
+      ],
+      "id": "7632d17f-781b-41d7-ae91-6222019ef56b",
+      "name": "Basic LLM Chain",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Bb_EjMeYqNWaQhBGaW-OaXH5paSk9Hq1e-4_vIB0SC4",
+          "mode": "list",
+          "cachedResultName": "Lead_Qualification",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Bb_EjMeYqNWaQhBGaW-OaXH5paSk9Hq1e-4_vIB0SC4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1432051968,
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Bb_EjMeYqNWaQhBGaW-OaXH5paSk9Hq1e-4_vIB0SC4/edit#gid=1432051968"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.output.evaluatedAt }}",
+            "Name": "={{ $('Webhook').item.json.body.fullName }}",
+            "Email": "={{ $('Webhook').item.json.body.email }}",
+            "Phone Number": "={{ $('Webhook').item.json.body.phone }}",
+            "Lead Fit": "={{ $json.output.leadFit }}",
+            "Business Name": "={{ $('Webhook').item.json.body.companyName }}",
+            "Website URL": "={{ $('Webhook').item.json.body.website }}",
+            "Urgency": "={{ $json.output.urgency }}",
+            "Reason": "={{ $json.output.reason }}",
+            "Project Description": "={{ $('Webhook').item.json.body.automationGoal }}",
+            "Timeline": "={{ $('Webhook').item.json.body.timeline }}",
+            "Budget": "={{ $('Webhook').item.json.body.budget }}",
+            "Next Step": "={{ $json.output.followUpAction }}",
+            "Email Status": "={{ $json.output.Email_Status }}",
+            "Email Subject ": "={{ $json.output.subject }}",
+            "Email Content ": "={{ $json.output.emailBody }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Business Name",
+              "displayName": "Business Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website URL",
+              "displayName": "Website URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Fit",
+              "displayName": "Lead Fit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Urgency",
+              "displayName": "Urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Project Description",
+              "displayName": "Project Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timeline",
+              "displayName": "Timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Status",
+              "displayName": "Email Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Next Step",
+              "displayName": "Next Step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Subject ",
+              "displayName": "Email Subject ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email Content ",
+              "displayName": "Email Content ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        880,
+        -336
+      ],
+      "id": "d574dc86-b9f1-4578-9aad-e65a6e9ef427",
+      "name": "Append row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "03CEMaGPaZ8zhwpp",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -256,
+        48
+      ],
+      "id": "3fe385d2-5db0-4b3e-8b33-a1abdcd15d7a",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Bb_EjMeYqNWaQhBGaW-OaXH5paSk9Hq1e-4_vIB0SC4",
+          "mode": "list",
+          "cachedResultName": "Lead_Qualification",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Bb_EjMeYqNWaQhBGaW-OaXH5paSk9Hq1e-4_vIB0SC4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1432051968,
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Bb_EjMeYqNWaQhBGaW-OaXH5paSk9Hq1e-4_vIB0SC4/edit#gid=1432051968"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Next Step",
+              "lookupValue": "Book discovery call"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        112,
+        48
+      ],
+      "id": "b9089e97-6cc2-450f-8aa9-a336dda73a1a",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "03CEMaGPaZ8zhwpp",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "={{ $json['Email Subject '] }}",
+        "message": "={{ $json['Email Content '] }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Agnetrix212"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        448,
+        48
+      ],
+      "id": "761e39a0-a2e4-46da-ac28-e9a138046672",
+      "name": "Send a message",
+      "webhookId": "7afd574d-24c8-4387-84b6-470b459f6dc7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "4lzrCCQGQEh0HXKW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1Bb_EjMeYqNWaQhBGaW-OaXH5paSk9Hq1e-4_vIB0SC4",
+          "mode": "list",
+          "cachedResultName": "Lead_Qualification",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Bb_EjMeYqNWaQhBGaW-OaXH5paSk9Hq1e-4_vIB0SC4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1432051968,
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Bb_EjMeYqNWaQhBGaW-OaXH5paSk9Hq1e-4_vIB0SC4/edit#gid=1432051968"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email Status": "Sent",
+            "row_number": "={{ $('Get row(s) in sheet').item.json.row_number }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Business Name",
+              "displayName": "Business Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website URL",
+              "displayName": "Website URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Fit",
+              "displayName": "Lead Fit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Urgency",
+              "displayName": "Urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Project Description",
+              "displayName": "Project Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timeline",
+              "displayName": "Timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Status",
+              "displayName": "Email Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Next Step",
+              "displayName": "Next Step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Subject ",
+              "displayName": "Email Subject ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Content ",
+              "displayName": "Email Content ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        832,
+        48
+      ],
+      "id": "9b9f2060-ef6d-498b-92e7-f32f0aca1b23",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "03CEMaGPaZ8zhwpp",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Scrape a url and get its content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape a url and get its content": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bf98b5a9-720b-4c00-8ad3-75762d9655aa",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cc8fbc6c0e10ac107523cabe2453f0b9216ff0ef0c1f112312039de381e2f175"
+  },
+  "id": "OYUhAchl95C0sJXB",
+  "tags": []
+}

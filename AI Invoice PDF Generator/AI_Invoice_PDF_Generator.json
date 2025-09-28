@@ -1,0 +1,450 @@
+{
+  "name": "AI_Invoice_PDF_Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "80b8584c-cfbf-4c38-9e42-fbd2a6492d75",
+      "name": "📱 Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1080,
+        -60
+      ],
+      "webhookId": "ai-invoice-bot",
+      "credentials": {
+        "telegramApi": {
+          "id": "Cg9dM7bNcPpXNS5R",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "check-start",
+                    "leftValue": "={{ $json.message?.text }}",
+                    "rightValue": "start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "welcome"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "check-invoice",
+                    "leftValue": "={{ $json.message?.text }}",
+                    "rightValue": "/start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "invoice_request"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "38586a8b-9265-4d11-8f67-3bdafbbd5a9b",
+      "name": "🔀 Route Messages",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -780,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "🤖 **Processing your invoice...**\n\n⚡ AI is analyzing your request...",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "24de848c-8d10-4bd5-a56e-04c30a1acfae",
+      "name": "⚡ Processing Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        80
+      ],
+      "webhookId": "ce4260e7-f933-4155-b514-dcc942ff6993",
+      "credentials": {
+        "telegramApi": {
+          "id": "Cg9dM7bNcPpXNS5R",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('📱 Telegram Trigger').item.json.message.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an expert invoice data extraction AI. Extract invoice details from the user's message and return structured JSON data.\n\nRules:\n- Generate invoice number as 'INV-' + current year + random 4 digits (e.g., INV-20251234)\n- Set invoice_date to today's date {{ $now.format('yyyy-MM-dd') }}  in YYYY-MM-DD format \n- If no due date mentioned, set 30 days from today in YYYY-MM-DD format\n- Calculate subtotal from all items\n- Apply 10% tax rate unless specified otherwise\n- Calculate total = subtotal + tax_amount\n- Default quantity to 1 if not specified\n- Be smart about parsing rates (hourly rates, project rates, fixed amounts)\n- If client name not clear, use 'Valued Customer'\n- If no email provided, use 'client@example.com'\n- Always include at least one item in the items array\n\nReturn ONLY valid JSON matching this exact structure."
+        }
+      },
+      "id": "6ff32ddd-4dde-442a-aac7-b386542b3694",
+      "name": "🧠 AI Invoice Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"client_name\": \"John Doe\",\n  \"client_email\": \"john@example.com\",\n  \"invoice_number\": \"INV-20251234\",\n  \"invoice_date\": \"2025-01-20\",\n  \"due_date\": \"2025-02-19\",\n  \"items\": [\n    {\n      \"description\": \"Web Design Services\",\n      \"quantity\": 1,\n      \"rate\": 2500,\n      \"amount\": 2500\n    }\n  ],\n  \"subtotal\": 2500,\n  \"tax_rate\": 0.1,\n  \"tax_amount\": 250,\n  \"total\": 2750,\n  \"notes\": \"Thank you for your business!\"\n}"
+      },
+      "id": "c1aa6a20-4375-4ff0-9eb1-b6e073fca1ac",
+      "name": "📊 Extract Invoice Data",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        100,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Invoice {{ $json.output.invoice_number }}</title>\n    <style>\n        * { margin: 0; padding: 0; box-sizing: border-box; }\n        body { \n            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; \n            line-height: 1.6; \n            color: #2c3e50; \n            background: #ffffff;\n            font-size: 14px;\n        }\n        .container { \n            max-width: 800px; \n            margin: 0 auto; \n            padding: 60px 40px;\n            background: #ffffff;\n        }\n        \n        /* Header Section */\n        .header {\n            display: flex;\n            justify-content: space-between;\n            align-items: flex-start;\n            margin-bottom: 80px;\n        }\n        .invoice-title {\n            font-size: 3.5rem;\n            font-weight: 300;\n            color: #1abc9c;\n            font-style: italic;\n            letter-spacing: -1px;\n        }\n        .invoice-meta {\n            text-align: right;\n            color: #7f8c8d;\n            font-size: 13px;\n        }\n        .invoice-meta p {\n            margin: 4px 0;\n        }\n        .invoice-number {\n            font-weight: 600;\n            color: #2c3e50;\n        }\n        \n        /* Company and Client Info */\n        .info-section {\n            display: grid;\n            grid-template-columns: 1fr 1fr;\n            gap: 100px;\n            margin-bottom: 80px;\n        }\n        .company-info, .client-info {\n            font-size: 13px;\n            line-height: 1.8;\n        }\n        .company-info {\n            color: #7f8c8d;\n        }\n        .client-info {\n            text-align: right;\n            color: #2c3e50;\n            font-weight: 500;\n        }\n        .client-name {\n            font-weight: 700;\n            font-size: 14px;\n            margin-bottom: 8px;\n        }\n        \n        /* Items Table */\n        .items-section {\n            margin: 80px 0;\n        }\n        .table-header {\n            display: grid;\n            grid-template-columns: 2fr 1fr 1fr 1fr;\n            padding: 0 0 20px 0;\n            border-bottom: 1px solid #ecf0f1;\n            margin-bottom: 30px;\n            font-size: 11px;\n            font-weight: 600;\n            color: #7f8c8d;\n            text-transform: uppercase;\n            letter-spacing: 0.5px;\n        }\n        .table-row {\n            display: grid;\n            grid-template-columns: 2fr 1fr 1fr 1fr;\n            padding: 20px 0;\n            border-bottom: 1px solid #f8f9fa;\n            align-items: center;\n            font-size: 13px;\n        }\n        .table-row:last-child {\n            border-bottom: none;\n        }\n        .item-description {\n            color: #2c3e50;\n            font-weight: 500;\n        }\n        .item-price, .item-quantity {\n            color: #7f8c8d;\n            text-align: center;\n        }\n        .item-subtotal {\n            text-align: right;\n            font-weight: 600;\n            color: #1abc9c;\n            font-size: 14px;\n        }\n        \n        /* Tax and Total Section */\n        .calculation-section {\n            margin: 40px 0 80px 0;\n            display: flex;\n            justify-content: flex-end;\n        }\n        .totals-table {\n            width: 300px;\n        }\n        .totals-row {\n            display: flex;\n            justify-content: space-between;\n            padding: 8px 0;\n            font-size: 13px;\n            color: #7f8c8d;\n        }\n        .subtotal-row {\n            border-bottom: 1px solid #ecf0f1;\n            margin-bottom: 8px;\n            padding-bottom: 12px;\n        }\n        .tax-row {\n            margin-bottom: 12px;\n        }\n        .total-row {\n            border-top: 2px solid #1abc9c;\n            padding-top: 12px;\n            font-size: 16px;\n            font-weight: 700;\n            color: #2c3e50;\n        }\n        .total-amount-calc {\n            color: #1abc9c;\n            font-weight: 700;\n        }\n        \n        /* Footer Section */\n        .footer-section {\n            margin-top: 120px;\n            display: grid;\n            grid-template-columns: 1fr 1fr 1fr;\n            gap: 60px;\n            align-items: end;\n        }\n        .thank-you {\n            color: #1abc9c;\n            font-size: 16px;\n            font-style: italic;\n        }\n        .thank-you::before {\n            content: '💚 ';\n            margin-right: 8px;\n        }\n        .contact-info {\n            text-align: center;\n            font-size: 11px;\n            color: #95a5a6;\n            line-height: 1.6;\n        }\n        .total-section {\n            text-align: right;\n        }\n        .due-info {\n            font-size: 11px;\n            color: #7f8c8d;\n            text-transform: uppercase;\n            letter-spacing: 0.5px;\n            margin-bottom: 8px;\n        }\n        .due-date {\n            font-size: 16px;\n            font-weight: 600;\n            color: #2c3e50;\n            margin-bottom: 15px;\n        }\n        .account-number {\n            font-size: 16px;\n            color: #7f8c8d;\n            margin-bottom: 15px;\n            font-family: 'Courier New', monospace;\n        }\n        .total-amount {\n            font-size: 2rem;\n            font-weight: 700;\n            color: #1abc9c;\n        }\n        \n        @media print {\n            body { -webkit-print-color-adjust: exact; color-adjust: exact; }\n            .container { padding: 40px 20px; }\n        }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <!-- Header -->\n        <div class=\"header\">\n            <h1 class=\"invoice-title\">Invoice</h1>\n            <div class=\"invoice-meta\">\n                <p>Invoice number: <span class=\"invoice-number\">{{ $json.output.invoice_number.replace('INV-', '') }}</span></p>\n                <p>Date: <strong>{{ $now.format('MMMM dd, yyyy') }}</strong></p>\n            </div>\n        </div>\n        \n        <!-- Company and Client Info -->\n        <div class=\"info-section\">\n            <div class=\"company-info\">\n                <p><strong>Agentrix212</strong></p>\n                <p>Digital Innovation Hub</p>\n                <p>AI Automation Services</p>\n            </div>\n            <div class=\"client-info\">\n                <div class=\"client-name\">{{ $json.output.client_name }}</div>\n                <p>Professional Services</p>\n                <p>{{ $json.output.client_email }}</p>\n            </div>\n        </div>\n        \n        <!-- Items Table -->\n        <div class=\"items-section\">\n            <div class=\"table-header\">\n                <div>DESCRIPTION</div>\n                <div style=\"text-align: center;\">PRICE</div>\n                <div style=\"text-align: center;\">QUANTITY</div>\n                <div style=\"text-align: right;\">SUBTOTAL</div>\n            </div>\n            \n            {{ $json.output.items.map(item => `\n            <div class=\"table-row\">\n                <div class=\"item-description\">${item.description}</div>\n                <div class=\"item-price\">${item.rate.toFixed(2)}</div>\n                <div class=\"item-quantity\">${item.quantity}</div>\n                <div class=\"item-subtotal\">${item.amount.toFixed(2)}</div>\n            </div>\n            `).join('') }}\n        </div>\n        \n        <!-- Tax and Totals Calculation -->\n        <div class=\"calculation-section\">\n            <div class=\"totals-table\">\n                <div class=\"totals-row subtotal-row\">\n                    <span>Subtotal:</span>\n                    <span>${{ $json.output.subtotal.toFixed(2) }}</span>\n                </div>\n                <div class=\"totals-row tax-row\">\n                    <span>Tax ({{ ($json.output.tax_rate * 1).toFixed(0) }}%):</span>\n                    <span>${{ $json.output.tax_amount.toFixed(2) }}</span>\n                </div>\n                <div class=\"totals-row total-row\">\n                    <span>Total:</span>\n                    <span class=\"total-amount-calc\">${{ $json.output.total.toFixed(2) }}</span>\n                </div>\n            </div>\n        </div>\n        \n        <!-- Footer Section -->\n        <div class=\"footer-section\">\n            <div class=\"thank-you\">\n                Thank you!\n            </div>\n            \n            <div class=\"contact-info\">\n                <p>support@agentrix212.com | agentrix212.com</p>\n            </div>\n            \n            <div class=\"total-section\">\n                <div class=\"due-info\">DUE BY</div>\n                <div class=\"due-date\">{{ $json.output.due_date }}</div>\n                \n                <div class=\"due-info\">ACCOUNT NUMBER</div>\n                <div class=\"account-number\">{{ Math.floor(Math.random() * 900000000000) + 100000000000 }}</div>\n                \n                <div class=\"due-info\">TOTAL DUE</div>\n                <div class=\"total-amount\">${{ $json.output.total.toFixed(2) }}</div>\n            </div>\n        </div>\n    </div>\n</body>\n</html>"
+      },
+      "id": "3827a323-cfcf-4d86-875d-f3aef6b641a0",
+      "name": "🎨 Generate HTML Template",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        380,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendDocument",
+        "chatId": "={{ $('📱 Telegram Trigger').first().json.message.chat.id }}",
+        "file": "={{ $json.url }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "8665c5eb-43d7-4610-983d-e28fec7130bb",
+      "name": "📨 Send Invoice PDF",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1060,
+        -100
+      ],
+      "webhookId": "b85226c8-0f1a-421f-94c4-c1bbcca191d6",
+      "credentials": {
+        "telegramApi": {
+          "id": "Cg9dM7bNcPpXNS5R",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-3.7-sonnet",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -180,
+        140
+      ],
+      "id": "2c09df09-d72f-4e15-8589-51d39f8c6ead",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "LX8VcZUBckotLjPE",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "🤖 **Welcome to AI Invoice Generator!**\n\n✨ **Just describe your invoice and I'll create a professional PDF instantly!**\n\n📝 **Example messages:**\n• \"Invoice for web design project, client John Doe, $2500, due in 30 days\"\n• \"Bill Sarah for 5 hours consulting at $150/hour\"\n• \"Create invoice: Logo design $800 for ABC Company\"\n\n🚀 **I'll automatically:**\n• Extract all invoice details using AI\n• Generate professional PDF with your branding\n• Calculate taxes and totals\n• Add invoice numbers and dates\n\n💡 **Just send me your invoice description to get started!**",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "1d1c80c5-79e7-4e7e-b005-c54024cf09f6",
+      "name": "👋 Send Welcome",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        -180
+      ],
+      "webhookId": "10194ec8-1350-46f3-b018-97f895bbcfda",
+      "credentials": {
+        "telegramApi": {
+          "id": "Cg9dM7bNcPpXNS5R",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Send invoice request\n",
+        "height": 340,
+        "width": 360
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1200,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "9739fddd-fa2c-4a02-8f56-de2a22caf3c3",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Generate Invoice Data",
+        "height": 540,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -220,
+        -220
+      ],
+      "typeVersion": 1,
+      "id": "dbf52616-4ae9-449e-9ab6-bc71a6ade35f",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Generate Invoice HTML Format\n ",
+        "height": 280,
+        "width": 300,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        280,
+        -180
+      ],
+      "typeVersion": 1,
+      "id": "02df6326-2241-4838-9185-f04c94148ec9",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Convert to PDF \n ",
+        "height": 280,
+        "width": 300,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        620,
+        -180
+      ],
+      "typeVersion": 1,
+      "id": "b1e689da-6b65-4296-9620-d7c8fa92fb23",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "operation": "URL/HTML to PDF",
+        "convertType": "htmlToPDF",
+        "html": "={{ $json.html }}",
+        "advancedOptions": {
+          "name": "Invoice",
+          "paperSize": "a3"
+        }
+      },
+      "type": "n8n-nodes-pdfco.PDFco Api",
+      "typeVersion": 1,
+      "position": [
+        700,
+        -100
+      ],
+      "id": "cb126785-4830-40f3-a37e-b709dbe26945",
+      "name": "PDFco Api",
+      "credentials": {
+        "pdfcoApi": {
+          "id": "sLpw8eZPwE9wevn6",
+          "name": "PDF.co account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Return Invoice PDF \n ",
+        "height": 280,
+        "width": 300,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        960,
+        -180
+      ],
+      "typeVersion": 1,
+      "id": "70a3a259-9d15-42d7-a90d-cf65ab5653ab",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "📱 Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "🔀 Route Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 Route Messages": {
+      "main": [
+        [
+          {
+            "node": "👋 Send Welcome",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "⚡ Processing Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚡ Processing Message": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Invoice Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Extract Invoice Data": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "🧠 AI Invoice Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎨 Generate HTML Template": {
+      "main": [
+        [
+          {
+            "node": "PDFco Api",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI Invoice Agent": {
+      "main": [
+        [
+          {
+            "node": "🎨 Generate HTML Template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🧠 AI Invoice Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📨 Send Invoice PDF": {
+      "main": [
+        []
+      ]
+    },
+    "PDFco Api": {
+      "main": [
+        [
+          {
+            "node": "📨 Send Invoice PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0e9a3f76-88de-4bed-b47a-d2adea25057a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cc8fbc6c0e10ac107523cabe2453f0b9216ff0ef0c1f112312039de381e2f175"
+  },
+  "id": "1dxqBWPyjMuKadnw",
+  "tags": []
+}

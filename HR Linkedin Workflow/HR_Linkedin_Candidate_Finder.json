@@ -1,0 +1,845 @@
+{
+  "name": "HR_Linkedin_Candidate_Finder",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "🤖 AI HR Assistant - Find Perfect Candidates",
+        "formDescription": "Let AI find and analyze the best LinkedIn candidates for your role in Morocco",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Job Title",
+              "placeholder": "e.g., Cybersecurity Engineer, Marketing Manager, Software Developer",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Required Skills",
+              "fieldType": "textarea",
+              "placeholder": "e.g., Python, React, CISSP, Digital Marketing, AWS (optional)"
+            },
+            {
+              "fieldLabel": "Years of Experience",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Any"
+                  },
+                  {
+                    "option": "1-2 years"
+                  },
+                  {
+                    "option": "3-5 years"
+                  },
+                  {
+                    "option": "5-8 years"
+                  },
+                  {
+                    "option": "8+ years"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Industry Preference",
+              "placeholder": "e.g., Technology, Healthcare, Finance, Banking (optional)"
+            },
+            {
+              "fieldLabel": "Location",
+              "placeholder": "Morocco, Casablanca, Rabat, etc."
+            },
+            {
+              "fieldLabel": "Number of Profiles to Find",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "5"
+                  },
+                  {
+                    "option": "10"
+                  },
+                  {
+                    "option": "15"
+                  },
+                  {
+                    "option": "20"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b9dd3cbc-74c1-4c5f-a3e8-0d35c3e33046",
+      "name": "HR Job Search Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "position": [
+        100,
+        240
+      ],
+      "webhookId": "hr-job-search-mvp",
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are an expert in Boolean search and recruitment keyword generation. When given a job title, you must:\n\n1. Generate comprehensive alternative keywords, synonyms, and related job titles but only in the same field for example (Cybersecurity )\n2. Include industry-specific terms, abbreviations, and certifications\n3. Add seniority level variations (Junior, Senior, Lead, Principal, etc.)\n4. Consider related roles that could fit the same position\n\nEXAMPLE:\nInput: \"Cybersecurity Engineer\"\nOutput should include: \"Cybersecurity Engineer\" OR \"Security Engineer\" OR \"InfoSec Engineer\" OR \"SOC Analyst\" OR \"Security Analyst\" OR \"Penetration Tester\" OR \"Security Architect\" OR \"CISSP\" OR \"Information Security\" OR \"Cyber Security\" OR \"IT Security\" BUT not Risk Analyst \n\nAlways stick as close as you can be to the field of search \n\nYour response must be in this EXACT JSON format:\n{\n  \"search_string\": \"site:linkedin.com/in ([comprehensive OR search with all keywords]) (Morocco OR Maroc OR Casablanca OR Rabat)\",\n  \"sheet_name\": \"JobTitle_YYYY-MM-DD_HH-MM\",\n  \"keywords_generated\": [\"list\", \"of\", \"all\", \"keywords\", \"used\"]\n}\n\nGenerate the most comprehensive search possible to find ALL relevant candidates.",
+              "role": "system"
+            },
+            {
+              "content": "=Job Title: {{ $json['Job Title'] }}\nRequired Skills: {{ $json['Required Skills'] || 'Any' }}\nExperience Level: {{ $json['Years of Experience'] || 'Any' }}\nIndustry: {{ $json['Industry Preference'] || 'Any' }}\nLocation: {{ $json['Location'] || 'Morocco' }}\n\nGenerate comprehensive LinkedIn search string with ALL possible alternative keywords and synonyms for this job title."
+            }
+          ]
+        },
+        "simplify": false,
+        "jsonOutput": true,
+        "options": {}
+      },
+      "id": "5cf1be11-384e-4689-b599-06b2416ce00e",
+      "name": "Generate Enhanced Search String",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        400,
+        240
+      ],
+      "typeVersion": 1.8,
+      "credentials": {
+        "openAiApi": {
+          "id": "jJ43azhw4WsPfIMK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate how many search pages we need\nconst profilesNeeded = parseInt($('HR Job Search Form').first().json['Number of Profiles to Find']);\nconst resultsPerPage = 10; // Google returns 10 results per page\nconst pagesNeeded = Math.ceil(profilesNeeded / resultsPerPage);\n\n// Create an array of page objects for Split In Batches to iterate over\nconst pages = [];\nfor (let i = 0; i < pagesNeeded; i++) {\n    pages.push({\n        json: {\n            pageNumber: i + 1,\n            startIndex: i * resultsPerPage,\n            totalPages: pagesNeeded,\n            profilesNeeded: profilesNeeded\n        }\n    });\n}\n\nconsole.log(`Need to fetch ${pagesNeeded} pages to get ${profilesNeeded} profiles`);\nreturn pages;"
+      },
+      "id": "c55e53af-3d74-4554-bb34-4d8d2cf82b94",
+      "name": "Create Page Items",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        760,
+        240
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "8c85455b-eb5e-4095-8943-ed4981874658",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        940,
+        420
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/customsearch/v1",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "cx",
+              "value": "a5563873d4aad4c46"
+            },
+            {
+              "name": "q",
+              "value": "={{ $('Generate Enhanced Search String').first().json.choices[0].message.content.search_string }}"
+            },
+            {
+              "name": "start",
+              "value": "={{ $json.startIndex + 1 }}"
+            },
+            {
+              "name": "gl",
+              "value": "ma"
+            },
+            {
+              "name": "cr",
+              "value": "countryMA"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7bac956e-cf7d-4388-abff-be72f83123ec",
+      "name": "Google Custom Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1380,
+        520
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "m8uhxFfX4rvbDniC",
+          "name": "Google Custom Search"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract LinkedIn URLs from Google Custom Search API response\nconst response = $input.first().json;\nconst pageInfo = $('Split In Batches').item.json;\n\nif (!response.items || !Array.isArray(response.items)) {\n    console.log(`Page ${pageInfo.pageNumber}: No search results found`);\n    return [];\n}\n\nconst linkedInProfiles = response.items\n    .filter(item => {\n        return item.link && \n               item.link.includes('linkedin.com/in/') &&\n               !item.link.includes('google.com');\n    })\n    .map(item => {\n        let url = item.link.split(/[?#]/)[0];\n        url = url.replace(/\\/$/, '');\n        \n        return {\n            json: {\n                linkedin_url: url,\n                page_number: pageInfo.pageNumber\n            }\n        };\n    });\n\nconsole.log(`Page ${pageInfo.pageNumber}: Found ${linkedInProfiles.length} LinkedIn profiles`);\nreturn linkedInProfiles;"
+      },
+      "id": "dd37dec6-03c0-4b00-bcca-c1803ff480b4",
+      "name": "Extract LinkedIn URLs",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1660,
+        520
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "id": "e641d961-dbce-4ef9-bce8-29b6a0ea8e31",
+      "name": "Wait 2s (Rate Limit)",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        1920,
+        520
+      ],
+      "webhookId": "wait-rate-limit",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect all unique LinkedIn URLs from all pages\nconst allItems = $input.all();\nconst uniqueUrls = new Map();\n\n// Deduplicate URLs\nallItems.forEach(item => {\n    if (item.json.linkedin_url) {\n        uniqueUrls.set(item.json.linkedin_url, item.json.linkedin_url);\n    }\n});\n\nconst urlArray = Array.from(uniqueUrls.values());\nconsole.log(`Collected ${urlArray.length} unique LinkedIn URLs total`);\n\n// Prepare for APIFY\nreturn [{\n    json: {\n        profileUrls: urlArray,\n        totalUrls: urlArray.length\n    }\n}];"
+      },
+      "id": "ec4764fb-71f3-4c48-afd1-f9f3e5c74bdb",
+      "name": "Prepare APIFY Input",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1120,
+        200
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process APIFY LinkedIn data\nconst items = [];\n\n// Get all items from the previous node - they come as individual JSON objects\nconst profiles = $items().map(item => item.json);\n\nconsole.log(`Processing ${profiles.length} profiles from APIFY`);\n\nprofiles.forEach(profile => {\n    if (!profile) return;\n    \n    // Extract skills from the complex structure\n    let skillsList = '';\n    if (profile.skills && Array.isArray(profile.skills)) {\n        skillsList = profile.skills\n            .map(skill => skill.title || '')\n            .filter(title => title.length > 0)\n            .slice(0, 10) // Limit to first 10 skills\n            .join(', ');\n    }\n    \n    // Extract education information\n    let educationList = '';\n    if (profile.educations && Array.isArray(profile.educations)) {\n        educationList = profile.educations\n            .map(edu => {\n                const parts = [];\n                if (edu.title) parts.push(edu.title);\n                if (edu.subtitle) parts.push(edu.subtitle);\n                if (edu.caption) parts.push(`(${edu.caption})`);\n                return parts.join(' - ');\n            })\n            .filter(edu => edu.length > 0)\n            .join('; ');\n    }\n    \n    // Extract certifications\n    let certifications = '';\n    if (profile.licenseAndCertificates && Array.isArray(profile.licenseAndCertificates)) {\n        certifications = profile.licenseAndCertificates\n            .map(cert => cert.title || '')\n            .filter(title => title.length > 0)\n            .join(', ');\n    }\n    \n    const processedProfile = {\n        linkedin_url: profile.linkedinUrl || '',\n        full_name: profile.fullName || profile.firstName + ' ' + profile.lastName || '',\n        headline: profile.headline || '',\n        email: profile.email || 'Not provided',\n        current_job_title: profile.jobTitle || '',\n        current_company: profile.companyName || 'Not specified',\n        company_industry: profile.companyIndustry || 'Not specified',\n        experience_years: profile.currentJobDurationInYrs || 0,\n        location: profile.addressWithCountry || profile.addressCountryOnly || '',\n        skills: skillsList || 'Not listed',\n        education: educationList || 'Not provided',\n        about_summary: (profile.about || '').substring(0, 500) || 'No summary available',\n        connections: profile.connections || 0,\n        certifications: certifications || 'None listed'\n    };\n    \n    items.push({ json: processedProfile });\n});\n\nconsole.log(`Successfully processed ${items.length} LinkedIn profiles`);\nreturn items;"
+      },
+      "id": "798c893a-d023-46e3-855e-84604fbdb7c7",
+      "name": "Process LinkedIn Data",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1940,
+        60
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert HR recruiter analyzing LinkedIn profiles for job fit in Morocco. \n\n**JOB REQUIREMENTS:**\nJob Title: {{ $('HR Job Search Form').first().json['Job Title'] }}\nRequired Skills: {{ $('HR Job Search Form').first().json['Required Skills'] || 'Any' }}\nExperience Level: {{ $('HR Job Search Form').first().json['Years of Experience'] || 'Any' }}\nIndustry: {{ $('HR Job Search Form').first().json['Industry Preference'] || 'Any' }}\nLocation: {{ $('HR Job Search Form').first().json['Location'] || 'Morocco' }}\n\n**Keywords Generated:** {{ $('Generate Enhanced Search String').first().json.choices[0].message.content.keywords_generated.join(', ') }}\n\n**SCORING CRITERIA:**\n- Experience Match (1-10): Relevance of work history and years\n- Skills Match (1-10): Alignment of technical/professional skills  \n- Education Match (1-10): Relevant education and certifications\n- Location Fit (1-10): Geographic preference and availability\n- Overall Fit (1-100): Comprehensive assessment\n\n**RESPOND IN THIS EXACT JSON FORMAT:**\n{\n\n\"linkedin_url\": \"https://ma.linkedin.com/in/mohamed-amineel-fakiri/en\",\n\"full_name\": \"MOHAMED-AMINE EL-FAKIRI\",\n\"headline \": \"SOC Analyst @DATAPROTECT | Speaker | Founder & Head of SOC4M Community | Qradar | ELK | LogRhythm | Security+ | BTL1 | CCTH | SOCRadar | DFIR\",\n\"email\": \"mohamed@dataprotect.ma\",\n\"current_job_title\": \"SOC Analyst\",\n\"current_company\" : \"Orange Cyberdefense\"\n\"company_industry\": \"Computer & Network Security\",\n\"experience_years\" : 2.67\n\"location\": \"Casablanca-Settat, Morocco\",\n\"skills\": \"Discover, Visualizations, Dashboards, Stack Overview, Security App, Hunt Capstone, Data modeling, Search, Aggregations, Data processing \",\n\"education\": \"SUPEMIR - Licence Professionnelle , Réseaux et Cybersécurité, Option Administration des Systèmes et Cloud Computing - (Sep 2024 - Jun 2025); Cités des Métiers et des Compétences - Technicien spécialisé , Infrastructure Digitale option Systèmes et Réseaux  - (Sep 2022 - Jul 2024)\",\n\"about_summary \": \"--> I am a SOC Analyst at DATAPROTECT, the cybersecurity leader in Morocco and Africa.\\nI contribute to the continuous monitoring of information systems, alert triage, threat detection, as well as the qualification, analysis, and investigation of security incidents.\\n\\n--> I also hold a Bachelor's degree in Networks & Cybersecurity from SUPEMIR, allowing me to deepen my skills and stay aligned with the latest industry challenges.\\n\\n--> Passionate about digital security, I'm always open to discussion\",\n  \"overall_fit_score\": 85,\n  \"experience_match\": 9,\n  \"skills_match\": 8,\n  \"education_match\": 7,\n  \"location_fit\": 10,\n  \"ai_recommendation\": \"Highly Recommended\",\n  \"key_strengths\": \"Strong technical background, 5+ years experience\",\n  \"potential_concerns\": \"May need training in specific framework\",\n  \"interview_questions\": \"Tell me about your experience with X; How do you approach Y?\"\n}\n\nRecommendations: Highly Recommended (80+), Recommended (60-79), Consider (40-59), Not Recommended (<40)",
+              "role": "system"
+            },
+            {
+              "content": "=**CANDIDATE PROFILE:**\nLinkedin : {{ $json.linkedin_url }}\nName: {{ $json.full_name }}\nHeadline: {{ $json.headline }}\nCurrent Role: {{ $json.current_job_title }} at {{ $json.current_company }}\nIndustry: {{ $json.company_industry }}\nExperience: {{ $json.experience_years }} years\nLocation: {{ $json.location }}\nSkills: {{ $json.skills }}\nEducation: {{ $json.education }}\nAbout: {{ $json.about_summary }}\n\nAnalyze this candidate's fit for the job requirements."
+            }
+          ]
+        },
+        "simplify": false,
+        "jsonOutput": true,
+        "options": {}
+      },
+      "id": "b437b0a6-5e58-4f92-a11d-175f69c2ea64",
+      "name": "AI Candidate Analysis",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        2160,
+        60
+      ],
+      "typeVersion": 1.8,
+      "credentials": {
+        "openAiApi": {
+          "id": "jJ43azhw4WsPfIMK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1GTG76Em0WJRsPXJBjkFAECZ0vdLrtDGu7Rqdvz4wlIQ",
+          "mode": "list",
+          "cachedResultName": "Linkedin",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GTG76Em0WJRsPXJBjkFAECZ0vdLrtDGu7Rqdvz4wlIQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 736098385,
+          "mode": "list",
+          "cachedResultName": "Linkedin",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GTG76Em0WJRsPXJBjkFAECZ0vdLrtDGu7Rqdvz4wlIQ/edit#gid=736098385"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "linkedin_url": "={{ $json.choices[0].message.content.linkedin_url }}",
+            "full_name": "={{ $json.choices[0].message.content.full_name }}",
+            "headline": "={{ $json.choices[0].message.content[\"headline \"] }}",
+            "email": "={{ $json.choices[0].message.content.email }}",
+            "current_job_title": "={{ $json.choices[0].message.content.current_job_title }}",
+            "current_company": "={{ $json.choices[0].message.content.current_company }}",
+            "company_industry": "={{ $json.choices[0].message.content.company_industry }}",
+            "experience_years": "={{ $json.choices[0].message.content.experience_years  }}",
+            "location": "={{ $json.choices[0].message.content.location }}",
+            "skills": "={{ $json.choices[0].message.content.skills }}",
+            "education": "={{ $json.choices[0].message.content.education }}",
+            "about_summary": "={{ $json.choices[0].message.content.about_summary }}",
+            "overall_fit_score": "={{ $json.choices[0].message.content.overall_fit_score }}",
+            "experience_match": "={{ $json.choices[0].message.content.experience_match }}",
+            "skills_match": "={{ $json.choices[0].message.content.skills_match }}",
+            "education_match": "={{ $json.choices[0].message.content.education_match }}",
+            "location_fit": "={{ $json.choices[0].message.content.location_fit }}",
+            "ai_recommendation": "={{ $json.choices[0].message.content.ai_recommendation }}",
+            "key_strengths": "={{ $json.choices[0].message.content.key_strengths }}",
+            "potential_concerns": "={{ $json.choices[0].message.content.potential_concerns }}",
+            "interview_questions": "={{ $json.choices[0].message.content.interview_questions }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "linkedin_url",
+              "displayName": "linkedin_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "headline",
+              "displayName": "headline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_job_title",
+              "displayName": "current_job_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_company",
+              "displayName": "current_company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "company_industry",
+              "displayName": "company_industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "experience_years",
+              "displayName": "experience_years",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "skills",
+              "displayName": "skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "education",
+              "displayName": "education",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "about_summary",
+              "displayName": "about_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "overall_fit_score",
+              "displayName": "overall_fit_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "experience_match",
+              "displayName": "experience_match",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "skills_match",
+              "displayName": "skills_match",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "education_match",
+              "displayName": "education_match",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "location_fit",
+              "displayName": "location_fit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ai_recommendation",
+              "displayName": "ai_recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "key_strengths",
+              "displayName": "key_strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "potential_concerns",
+              "displayName": "potential_concerns",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "interview_questions",
+              "displayName": "interview_questions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "dda3f8f9-d8eb-4510-8d40-54c7e05f40b1",
+      "name": "Save to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        2540,
+        60
+      ],
+      "typeVersion": 4.5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "03CEMaGPaZ8zhwpp",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Run actor",
+        "actorId": {
+          "__rl": true,
+          "value": "2SyF0bVxmgGr8IVCZ",
+          "mode": "list",
+          "cachedResultName": "✨Mass Linkedin Profile Scraper with Email 📧 (No Cookies)",
+          "cachedResultUrl": "https://console.apify.com/actors/2SyF0bVxmgGr8IVCZ/input"
+        },
+        "customBody": "={{ JSON.stringify($json) }}",
+        "waitForFinish": 60,
+        "authentication": "apifyOAuth2Api"
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        200
+      ],
+      "id": "236a74b0-3d83-4b89-8773-5bd4a762e40b",
+      "name": "Run an Actor",
+      "credentials": {
+        "apifyOAuth2Api": {
+          "id": "UNRHKVgdpVz9rVTs",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/actor-runs/{{ $json.id }}/dataset/items",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyOAuth2Api",
+        "options": {}
+      },
+      "id": "513fd071-2b4d-42c2-9988-f311047af92f",
+      "name": "Get APIFY Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1660,
+        60
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "apifyOAuth2Api": {
+          "id": "UNRHKVgdpVz9rVTs",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 🤖 OpenAI Setup Required\n**What it does:** Generates Boolean search strings\n\n**Setup:**\n1. Get API Key from https://platform.openai.com/api-keys\n2. Add to n8n credentials as \"OpenAI account\"\n3. Uses GPT-4o-mini model",
+        "height": 200,
+        "width": 400,
+        "color": 7
+      },
+      "id": "b8f3117e-84ee-490e-bbc4-6e2170ff4026",
+      "name": "Sticky Note - OpenAI Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        300,
+        0
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 🔍 Google Custom Search Setup\n**What it does:** Searches for LinkedIn profiles\n\n**Setup Required:**\n1. **Create Search Engine:**\n   - Go to https://programmablesearchengine.google.com/\n   - Click \"Add\" → Set to search entire web\n   - Copy Search Engine ID (cx parameter)\n\n2. **Get API Key:**\n   - Go to https://console.cloud.google.com/\n   - Enable \"Custom Search API\"\n   - Create credentials → API Key\n   - Add as HTTP Header Auth with header name \"key\"",
+        "height": 380,
+        "width": 500,
+        "color": 6
+      },
+      "id": "84e671a0-27ed-4632-a68d-dce7241e40e5",
+      "name": "Sticky Note - Google Custom Search",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1220,
+        740
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 🕷️ APIFY Setup\n**What it does:** Scrapes detailed LinkedIn profiles\n\n**Setup:**\n1. Create account at https://apify.com/\n2. Get API Token from Settings → Integrations\n3. Find \"Mass LinkedIn Profile Scraper with Email\"\n4. Add APIFY OAuth2 credentials in n8n\n5. Actor waits up to 60 seconds for completion",
+        "height": 320,
+        "width": 500,
+        "color": 3
+      },
+      "id": "4030ed7b-53fa-41dc-bd11-365fad797985",
+      "name": "Sticky Note - APIFY Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1180,
+        -160
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 📊 Google Sheets Setup\n**What it does:** Saves analyzed candidates\n\n**Setup:**\n1. Create/use existing Google Sheet\n2. Connect Google account in n8n\n3. Select your spreadsheet\n4. Ensure sheet has all required columns\n5. Data appends to existing records",
+        "height": 260,
+        "width": 500
+      },
+      "id": "99c8a9c3-8a40-4bc8-8054-797ec8bab850",
+      "name": "Sticky Note - Google Sheets Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2440,
+        220
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 🚀 LinkedIn HR Assistant Workflow\n\n**Overview:**\nThis workflow automates LinkedIn candidate search and analysis for HR managers in Morocco.\n\n**Flow:**\n1. HR fills form with job requirements\n2. AI generates comprehensive search keywords\n3. Google searches LinkedIn profiles\n4. APIFY scrapes detailed profile data\n5. AI analyzes candidate fit\n6. Results saved to Google Sheet\n\n**Features:**\n- Smart keyword expansion\n- Morocco-focused search\n- Email extraction\n- AI-powered scoring\n- Automated recommendations\n\n**Rate Limits:**\n- 2-second delay between searches\n- Processes up to 20 profiles per run",
+        "height": 600,
+        "width": 400,
+        "color": 6
+      },
+      "id": "94a85e8a-3de4-42ea-8c06-cec4e8182f93",
+      "name": "Sticky Note - Workflow Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -240,
+        -40
+      ],
+      "typeVersion": 1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HR Job Search Form": {
+      "main": [
+        [
+          {
+            "node": "Generate Enhanced Search String",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Enhanced Search String": {
+      "main": [
+        [
+          {
+            "node": "Create Page Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Page Items": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "Prepare APIFY Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Custom Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Custom Search": {
+      "main": [
+        [
+          {
+            "node": "Extract LinkedIn URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract LinkedIn URLs": {
+      "main": [
+        [
+          {
+            "node": "Wait 2s (Rate Limit)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 2s (Rate Limit)": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare APIFY Input": {
+      "main": [
+        [
+          {
+            "node": "Run an Actor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process LinkedIn Data": {
+      "main": [
+        [
+          {
+            "node": "AI Candidate Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Candidate Analysis": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run an Actor": {
+      "main": [
+        [
+          {
+            "node": "Get APIFY Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get APIFY Results": {
+      "main": [
+        [
+          {
+            "node": "Process LinkedIn Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9ed25d94-8a99-4911-9c71-9e190d63d694",
+  "meta": {
+    "instanceId": "cc8fbc6c0e10ac107523cabe2453f0b9216ff0ef0c1f112312039de381e2f175"
+  },
+  "id": "IefwcvC3ephB6Paj",
+  "tags": []
+}

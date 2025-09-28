@@ -1,0 +1,650 @@
+{
+  "name": "AI Daily News Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -144,
+        544
+      ],
+      "id": "5a0b83d8-9e3b-4138-af67-8664171e54bc",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "065b6a3f-37c1-4043-b842-5bedc7fcb03c",
+              "leftValue": "={{ $json.isoDate }}",
+              "rightValue": "={{ new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() }}\n",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        512
+      ],
+      "id": "246ba35a-d237-45ff-86bd-c596ee2b49cd",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        416,
+        480
+      ],
+      "id": "31b1b6b6-4f4c-42ad-beb6-fe66025e39d9",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "link,title",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        896,
+        512
+      ],
+      "id": "3badd2b1-b1cc-4bc8-aa00-8ab59fef25c3",
+      "name": "Remove Duplicates"
+    },
+    {
+      "parameters": {
+        "html": "={{ $json.content }}",
+        "destinationKey": "clean_content",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        512
+      ],
+      "id": "bedcc5b9-3de4-4655-a0ae-694510203089",
+      "name": "Markdown"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1712,
+        880
+      ],
+      "id": "f39c09af-ce64-4779-a2ee-28490a95a0f2",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "H93Xz3BTAsxFWy9R",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"reportTitle\": {\n      \"type\": \"string\",\n      \"description\": \"Dynamic report title with today's date\"\n    },\n    \"executiveSummary\": {\n      \"type\": \"string\", \n      \"description\": \"2-3 sentence summary of the most important developments for creators\"\n    },\n    \"newModels\": {\n      \"type\": \"array\",\n      \"description\": \"New AI models and releases\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"modelName\": {\"type\": \"string\"},\n          \"company\": {\"type\": \"string\"},\n          \"capabilities\": {\"type\": \"string\"},\n          \"accessInfo\": {\"type\": \"string\"},\n          \"relevanceToCreators\": {\"type\": \"string\"},\n          \"source\": {\"type\": \"string\"},\n          \"url\": {\"type\": \"string\"}\n        }\n      }\n    },\n    \"creatorTools\": {\n      \"type\": \"array\", \n      \"description\": \"AI tools and apps for content creators\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"toolName\": {\"type\": \"string\"},\n          \"description\": {\"type\": \"string\"},\n          \"useCase\": {\"type\": \"string\"},\n          \"pricing\": {\"type\": \"string\"},\n          \"availability\": {\"type\": \"string\"},\n          \"source\": {\"type\": \"string\"},\n          \"url\": {\"type\": \"string\"}\n        }\n      }\n    },\n    \"openSource\": {\n      \"type\": \"array\",\n      \"description\": \"Open source AI models and tools\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"name\": {\"type\": \"string\"},\n          \"description\": {\"type\": \"string\"},\n          \"platform\": {\"type\": \"string\"},\n          \"creatorApplications\": {\"type\": \"string\"},\n          \"source\": {\"type\": \"string\"},\n          \"url\": {\"type\": \"string\"}\n        }\n      }\n    },\n    \"agentNews\": {\n      \"type\": \"array\",\n      \"description\": \"AI agents and automation tools\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"agentName\": {\"type\": \"string\"},\n          \"description\": {\"type\": \"string\"},\n          \"capabilities\": {\"type\": \"string\"},\n          \"creatorUseCase\": {\"type\": \"string\"},\n          \"source\": {\"type\": \"string\"},\n          \"url\": {\"type\": \"string\"}\n        }\n      }\n    },\n    \"bigTechMoves\": {\n      \"type\": \"array\", \n      \"description\": \"Major company announcements affecting creators\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"company\": {\"type\": \"string\"},\n          \"announcement\": {\"type\": \"string\"},\n          \"impactOnCreators\": {\"type\": \"string\"},\n          \"timeline\": {\"type\": \"string\"},\n          \"source\": {\"type\": \"string\"},\n          \"url\": {\"type\": \"string\"}\n        }\n      }\n    },\n    \"earlyAccess\": {\n      \"type\": \"array\",\n      \"description\": \"Beta releases and early access opportunities\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"productName\": {\"type\": \"string\"},\n          \"company\": {\"type\": \"string\"},\n          \"description\": {\"type\": \"string\"},\n          \"howToAccess\": {\"type\": \"string\"},\n          \"deadline\": {\"type\": \"string\"},\n          \"source\": {\"type\": \"string\"},\n          \"url\": {\"type\": \"string\"}\n        }\n      }\n    },\n    \"creatorInsights\": {\n      \"type\": \"array\",\n      \"description\": \"Strategic insights for content creators\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"insight\": {\"type\": \"string\"},\n          \"opportunity\": {\"type\": \"string\"},\n          \"actionForCreators\": {\"type\": \"string\"}\n        }\n      }\n    },\n    \"metadata\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"totalArticles\": {\"type\": \"number\"},\n        \"reportDate\": {\"type\": \"string\"},\n        \"focusAreas\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}},\n        \"analysisTime\": {\"type\": \"string\"}\n      }\n    }\n  },\n  \"required\": [\"reportTitle\", \"executiveSummary\", \"creatorInsights\", \"metadata\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2192,
+        656
+      ],
+      "id": "9d0a88c7-c2a7-436a-be83-48b54b4fd59a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Filters, scores and ranks AI news articles for importance and relevance. Collaborates with the master agent to process RSS feeds.",
+        "text": "=Process and rank these RSS articles:\n\n{{ $json.articles.toJsonString() }}\n\nFilter out low-quality content, score each article by importance, and return the top 20 articles in the specified JSON format.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an AI news analyst for content creators. Your ContentIntelligenceAgent returns structured JSON with filtered articles.\n\nWORKFLOW:\n1. Call ContentIntelligenceAgent to get filtered articles\n2. Process the structured response: filteredArticles array\n3. Group articles by category for your final report\n4. Focus on practical applications for content creators\n5. Include access information and next steps\n\nWhen you receive the ContentIntelligenceAgent response, use this data structure:\n- filteredArticles[].title - for headlines\n- filteredArticles[].summary - for descriptions  \n- filteredArticles[].creatorRelevance - for impact explanation\n- filteredArticles[].accessInfo - for how creators can use it\n- filteredArticles[].category - for section organization\n- filteredArticles[].score - for priority ranking\n\nPRIORITIZE HIGH SCORES: Focus on articles with scores 80+ for breaking news section.\n\nCreate comprehensive report using the structured data from your sub-agent."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 2.2,
+      "position": [
+        1920,
+        768
+      ],
+      "id": "1343b65b-6b85-4cf3-8a41-97b9d846572c",
+      "name": "ContentIntelligenceAgent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a content creator-focused AI intelligence report from these articles:\n\n{{ $json.articles.toJsonString() }}\n\n\nFirst, use your ContentIntelligenceAgent to identify the most relevant stories for social media content creators, then create a comprehensive report focusing on:\n\n1. NEW AI MODELS & LAUNCHES (what creators can use now)\n2. CREATOR TOOLS & APPLICATIONS (practical AI for content)\n3. OPEN SOURCE RELEASES (free models and tools)\n4. AI AGENTS & WORKFLOW AUTOMATION\n5. BIG TECH MOVES affecting creators\n6. EARLY ACCESS OPPORTUNITIES\n\nInclude access information, pricing, and practical use cases for content creators.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an AI news analyst specialized in content creation and social media trends. Your user is a content creator who needs to stay ahead of AI developments for social media content.\n\n\nToday's Date is : {{ $now.format('yyyy-MM-dd') }}\n\n\nCONTENT CREATOR PRIORITIES (Rank as Breaking News):\n1. NEW AI MODELS & LAUNCHES 🚀\n   - OpenAI, Anthropic, Google, Meta model releases\n   - Open source models (Llama, Mistral, DeepSeek, Qwen, etc.)\n   - Model capabilities, benchmarks, parameter counts\n   - Beta releases, early access announcements\n\n2. AI APPLICATIONS & TOOLS 🛠️\n   - New AI apps for creators (video, image, audio, text)\n   - Creative AI tools (Midjourney, Runway, ElevenLabs updates)\n   - Productivity AI (notion AI, GPT plugins, browser extensions)\n   - No-code AI platforms and integrations\n\n3. AI AGENTS & AUTONOMOUS SYSTEMS 🤖\n   - Multi-agent systems, AI assistants\n   - Agent frameworks (CrewAI, AutoGPT, LangChain)\n   - AI workflow automation tools\n   - Conversational AI and chatbot updates\n\n4. LLM DEVELOPMENTS 🧠\n   - Training techniques, fine-tuning methods\n   - Performance improvements, context lengths\n   - Multimodal capabilities (vision, audio, code)\n   - Reasoning and planning advances\n\n5. BIG TECH AI MOVES 🏢\n   - Google, Microsoft, Meta, Apple, Amazon AI\n   - Startup acquisitions, strategic partnerships\n   - Platform integrations (Instagram AI, YouTube AI, etc.)\n   - Developer tools and API releases\n\nWORKFLOW:\n1. Use ContentIntelligenceAgent to filter for creator-relevant content\n2. Prioritize hands-on tools and practical applications\n3. Include model access info (API, open source, pricing)\n4. Focus on \"what creators can use today\" vs theoretical research\n5. Highlight early access opportunities and demos\n\nCONTENT GUIDELINES:\n- Lead with what creators can immediately use/test\n- Include access methods (links, waitlists, pricing)\n- Mention content creation use cases specifically\n- Flag beta/early access opportunities\n- Focus on practical impact for content creation workflows\n\nFORMAT: Use the structured JSON output with creator-focused categorization."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1936,
+        496
+      ],
+      "id": "fabfcaa7-f08e-4425-b04a-b1fbecc82a2c",
+      "name": "AI News Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the AI report data\nconst report = $input.first().json.output;\n\n// Simple, clean professional HTML with new schema structure\nconst newsletterHTML = `\n<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <style>\n        body {\n            font-family: Arial, sans-serif;\n            line-height: 1.6;\n            color: #333;\n            max-width: 600px;\n            margin: 0 auto;\n            padding: 20px;\n            background: #ffffff;\n        }\n        h1 {\n            color: #2c3e50;\n            border-bottom: 3px solid #3498db;\n            padding-bottom: 10px;\n        }\n        h2 {\n            color: #2980b9;\n            margin-top: 30px;\n            margin-bottom: 15px;\n        }\n        .summary {\n            background: #f8f9fa;\n            padding: 15px;\n            border-left: 4px solid #3498db;\n            margin-bottom: 25px;\n        }\n        .article {\n            border-bottom: 1px solid #eee;\n            padding: 15px 0;\n            margin-bottom: 15px;\n        }\n        .article h3 {\n            color: #2c3e50;\n            margin: 0 0 8px 0;\n        }\n        .source {\n            color: #7f8c8d;\n            font-size: 12px;\n            margin-top: 8px;\n        }\n        .source a {\n            color: #3498db;\n            text-decoration: none;\n            font-weight: bold;\n        }\n        .source a:hover {\n            text-decoration: underline;\n        }\n        .read-more {\n             display: inline-block;\n             background: #3498db;\n             color: white !important;\n             padding: 6px 12px;\n             border-radius: 4px;\n             text-decoration: none;\n             font-size: 12px;\n             margin-top: 8px;\n        }\n        .read-more:hover {\n            background: #2980b9;\n            color: white;\n            text-decoration: none;\n        }\n        .model-item {\n            background: #e8f4fd;\n            padding: 12px;\n            margin: 8px 0;\n            border-radius: 5px;\n            border-left: 4px solid #3498db;\n        }\n        .tool-item {\n            background: #f0f8e8;\n            padding: 12px;\n            margin: 8px 0;\n            border-radius: 5px;\n            border-left: 4px solid #27ae60;\n        }\n        .opensource-item {\n            background: #fef9e7;\n            padding: 12px;\n            margin: 8px 0;\n            border-radius: 5px;\n            border-left: 4px solid #f39c12;\n        }\n        .early-access {\n            background: #fdebf7;\n            padding: 12px;\n            margin: 8px 0;\n            border-radius: 5px;\n            border-left: 4px solid #e91e63;\n        }\n        .insight {\n            background: #fff3cd;\n            padding: 12px;\n            margin: 8px 0;\n            border-radius: 5px;\n            border-left: 4px solid #ffc107;\n        }\n        .footer {\n            margin-top: 40px;\n            padding-top: 20px;\n            border-top: 1px solid #eee;\n            text-align: center;\n            color: #7f8c8d;\n            font-size: 12px;\n        }\n    </style>\n</head>\n<body>\n    <h1>🤖 AI Creator Intelligence Report</h1>\n    <p><strong>Date:</strong> ${new Date(report.metadata?.reportDate || Date.now()).toLocaleDateString('en-US', { \n        weekday: 'long', \n        year: 'numeric', \n        month: 'long', \n        day: 'numeric' \n    })}</p>\n    \n    <div class=\"summary\">\n        <h2>📊 Executive Summary</h2>\n        <p>${report.executiveSummary || 'AI developments for content creators analyzed.'}</p>\n    </div>\n    \n    ${report.newModels && report.newModels.length > 0 ? `\n    <h2>🚀 New AI Models & Launches</h2>\n    ${report.newModels.map(item => `\n        <div class=\"model-item\">\n            <h3>${item.modelName} by ${item.company}</h3>\n            <p>${item.capabilities}</p>\n            <p><strong>For Creators:</strong> ${item.relevanceToCreators}</p>\n            <p><strong>Access:</strong> ${item.accessInfo}</p>\n            <div class=\"source\">\n                Source: <a href=\"${item.url || '#'}\" target=\"_blank\">${item.source}</a>\n                ${item.url ? `<br><a href=\"${item.url}\" target=\"_blank\" class=\"read-more\">📖 Read Full Article</a>` : ''}\n            </div>\n        </div>\n    `).join('')}\n    ` : ''}\n    \n    ${report.creatorTools && report.creatorTools.length > 0 ? `\n    <h2>🛠️ Creator Tools & Applications</h2>\n    ${report.creatorTools.map(item => `\n        <div class=\"tool-item\">\n            <h3>${item.toolName}</h3>\n            <p>${item.description}</p>\n            <p><strong>Use Case:</strong> ${item.useCase}</p>\n            <p><strong>Pricing:</strong> ${item.pricing}</p>\n            <p><strong>Availability:</strong> ${item.availability}</p>\n            <div class=\"source\">\n                Source: <a href=\"${item.url || '#'}\" target=\"_blank\">${item.source}</a>\n                ${item.url ? `<br><a href=\"${item.url}\" target=\"_blank\" class=\"read-more\">📖 Read Full Article</a>` : ''}\n            </div>\n        </div>\n    `).join('')}\n    ` : ''}\n    \n    ${report.openSource && report.openSource.length > 0 ? `\n    <h2>🔓 Open Source Releases</h2>\n    ${report.openSource.map(item => `\n        <div class=\"opensource-item\">\n            <h3>${item.name}</h3>\n            <p>${item.description}</p>\n            <p><strong>Platform:</strong> ${item.platform}</p>\n            <p><strong>Creator Applications:</strong> ${item.creatorApplications}</p>\n            <div class=\"source\">\n                Source: <a href=\"${item.url || '#'}\" target=\"_blank\">${item.source}</a>\n                ${item.url ? `<br><a href=\"${item.url}\" target=\"_blank\" class=\"read-more\">📖 Read Full Article</a>` : ''}\n            </div>\n        </div>\n    `).join('')}\n    ` : ''}\n    \n    ${report.agentNews && report.agentNews.length > 0 ? `\n    <h2>🤖 AI Agents & Automation</h2>\n    ${report.agentNews.map(item => `\n        <div class=\"article\">\n            <h3>${item.agentName}</h3>\n            <p>${item.description}</p>\n            <p><strong>Capabilities:</strong> ${item.capabilities}</p>\n            <p><strong>Creator Use Case:</strong> ${item.creatorUseCase}</p>\n            <div class=\"source\">\n                Source: <a href=\"${item.url || '#'}\" target=\"_blank\">${item.source}</a>\n                ${item.url ? `<br><a href=\"${item.url}\" target=\"_blank\" class=\"read-more\">📖 Read Full Article</a>` : ''}\n            </div>\n        </div>\n    `).join('')}\n    ` : ''}\n    \n    ${report.bigTechMoves && report.bigTechMoves.length > 0 ? `\n    <h2>🏢 Big Tech AI Moves</h2>\n    ${report.bigTechMoves.map(item => `\n        <div class=\"article\">\n            <h3>${item.company}: ${item.announcement}</h3>\n            <p><strong>Impact on Creators:</strong> ${item.impactOnCreators}</p>\n            <p><strong>Timeline:</strong> ${item.timeline}</p>\n            <div class=\"source\">\n                Source: <a href=\"${item.url || '#'}\" target=\"_blank\">${item.source}</a>\n                ${item.url ? `<br><a href=\"${item.url}\" target=\"_blank\" class=\"read-more\">📖 Read Full Article</a>` : ''}\n            </div>\n        </div>\n    `).join('')}\n    ` : ''}\n    \n    ${report.earlyAccess && report.earlyAccess.length > 0 ? `\n    <h2>⭐ Early Access Opportunities</h2>\n    ${report.earlyAccess.map(item => `\n        <div class=\"early-access\">\n            <h3>${item.productName} by ${item.company}</h3>\n            <p>${item.description}</p>\n            <p><strong>How to Access:</strong> ${item.howToAccess}</p>\n            <p><strong>Deadline:</strong> ${item.deadline}</p>\n            <div class=\"source\">\n                Source: <a href=\"${item.url || '#'}\" target=\"_blank\">${item.source}</a>\n                ${item.url ? `<br><a href=\"${item.url}\" target=\"_blank\" class=\"read-more\">📖 Read Full Article</a>` : ''}\n            </div>\n        </div>\n    `).join('')}\n    ` : ''}\n    \n    ${report.creatorInsights && report.creatorInsights.length > 0 ? `\n    <h2>💡 Creator Insights</h2>\n    ${report.creatorInsights.map((item, index) => `\n        <div class=\"insight\">\n            <strong>${index + 1}. ${item.insight}</strong><br>\n            ${item.opportunity}<br>\n            <strong>Action:</strong> ${item.actionForCreators}\n        </div>\n    `).join('')}\n    ` : ''}\n    \n    <div class=\"footer\">\n        <p><strong>AI Creator Intelligence System</strong></p>\n        <p>Powered by n8n Automation | Generated on ${report.metadata?.reportDate || new Date().toISOString().split('T')[0]}</p>\n        <p>Analyzed ${report.metadata?.totalArticles || 'multiple'} articles from trusted sources</p>\n        <p style=\"margin-top: 15px;\">\n            💡 <em>Click \"Read Full Article\" links to access complete source articles</em>\n        </p>\n    </div>\n</body>\n</html>\n`;\n\nreturn [{\n  json: {\n    emailHTML: newsletterHTML,\n    subject: `🤖 AI Daily News Report - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,\n    reportDate: report.metadata?.reportDate || new Date().toISOString().split('T')[0],\n    reportTitle: report.reportTitle || 'AI Creator Intelligence Report'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        496
+      ],
+      "id": "908c6dec-b019-4ede-8f0d-47bc8f943a6b",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "sendTo": "test@gmail.com",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.emailHTML }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Your AI Agent "
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2704,
+        496
+      ],
+      "id": "6d441e45-063d-4b5c-90ea-e43f8d99b6df",
+      "name": "Send a message",
+      "webhookId": "3d7d6b6f-3666-46f6-9cf8-edb6a6dc1c39",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0LiYPwSJ18sJ0hDG",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"filteredArticles\": {\n      \"type\": \"array\",\n      \"description\": \"Top articles ranked for content creator relevance\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"title\": {\n            \"type\": \"string\",\n            \"description\": \"Article headline\"\n          },\n          \"summary\": {\n            \"type\": \"string\", \n            \"description\": \"Clean 2-3 sentence summary\"\n          },\n          \"source\": {\n            \"type\": \"string\",\n            \"description\": \"Publication name\"\n          },\n          \"url\": {\n            \"type\": \"string\",\n            \"description\": \"Direct link to article\"\n          },\n          \"score\": {\n            \"type\": \"number\",\n            \"description\": \"Relevance score 1-100\"\n          },\n          \"category\": {\n            \"type\": \"string\",\n            \"enum\": [\"model_launch\", \"creator_tool\", \"open_source\", \"agent_news\", \"big_tech\", \"early_access\", \"funding\", \"research\"],\n            \"description\": \"Content creator category\"\n          },\n          \"creatorRelevance\": {\n            \"type\": \"string\", \n            \"description\": \"Why this matters for content creators\"\n          },\n          \"accessInfo\": {\n            \"type\": \"string\",\n            \"description\": \"How creators can access/use this (free, paid, waitlist, etc.)\"\n          },\n          \"urgency\": {\n            \"type\": \"string\",\n            \"enum\": [\"breaking\", \"trending\", \"standard\"],\n            \"description\": \"News urgency level\"\n          },\n          \"publishDate\": {\n            \"type\": \"string\",\n            \"description\": \"When article was published\"\n          }\n        },\n        \"required\": [\"title\", \"summary\", \"source\", \"score\", \"category\", \"creatorRelevance\"]\n      }\n    },\n    \"processingStats\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"totalProcessed\": {\n          \"type\": \"number\",\n          \"description\": \"Total articles analyzed\"\n        },\n        \"filtered\": {\n          \"type\": \"number\", \n          \"description\": \"Articles returned after filtering\"\n        },\n        \"topCategories\": {\n          \"type\": \"array\",\n          \"items\": {\"type\": \"string\"},\n          \"description\": \"Most common categories found\"\n        },\n        \"avgScore\": {\n          \"type\": \"number\",\n          \"description\": \"Average relevance score\"\n        }\n      }\n    }\n  },\n  \"required\": [\"filteredArticles\", \"processingStats\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2144,
+        928
+      ],
+      "id": "38b08efc-93ce-4aec-b48f-b8b8fdc633e5",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "url": "https://feeds.feedburner.com/venturebeat/SZYF",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        144,
+        240
+      ],
+      "id": "68356b0f-c93c-41d1-996e-9803d6dd3686",
+      "name": "Venturebeat News"
+    },
+    {
+      "parameters": {
+        "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        416
+      ],
+      "id": "0554b22f-fa63-4828-8828-8cb11069d076",
+      "name": "Techcrunch News"
+    },
+    {
+      "parameters": {
+        "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        592
+      ],
+      "id": "4e99c81d-cd03-45a7-84dd-e9afa493771c",
+      "name": "TechnologyReview"
+    },
+    {
+      "parameters": {
+        "url": "https://artificialintelligence-news.com/feed/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        784
+      ],
+      "id": "c0ff2ee9-a0e3-4015-b96e-435028f4224f",
+      "name": "artificialintelligence-news"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f4b22a06-df3a-489d-bfd6-f738ea495f72",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "d7cd0492-bb03-4cd9-a63d-8fe6a2ae2f96",
+              "name": "link",
+              "value": "={{ $json.link }}",
+              "type": "string"
+            },
+            {
+              "id": "ed67feb8-6f34-4e7a-8ecf-26a7c0451c19",
+              "name": "content",
+              "value": "={{ $json.content || $json.description || $json.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "d7d0b75a-ce20-468c-8953-6aa4b9495c43",
+              "name": "contentSnippet",
+              "value": "={{ $json.contentSnippet }}",
+              "type": "string"
+            },
+            {
+              "id": "8ee0bb3c-7283-49e8-9742-17d6bb1714df",
+              "name": "creator",
+              "value": "={{ $json.creator || $json['dc:creator'] }}",
+              "type": "string"
+            },
+            {
+              "id": "461d5f96-b47a-4538-a358-6a491d35b90c",
+              "name": "pubDate",
+              "value": "={{ $json.pubDate }}",
+              "type": "string"
+            },
+            {
+              "id": "34d4a0e7-53b3-4817-a142-cafa7430e03f",
+              "name": "isoDate",
+              "value": "={{ $json.isoDate }}",
+              "type": "string"
+            },
+            {
+              "id": "fc12cf68-84e3-414e-8eb3-f22ba61e2db4",
+              "name": "categories",
+              "value": "={{ $json.categories }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1136,
+        512
+      ],
+      "id": "0da7e362-e283-40d0-9714-283c2d4f8359",
+      "name": "Mapping"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "articles",
+        "include": "allFieldsExcept",
+        "fieldsToExclude": "contentSnippet,content",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        496
+      ],
+      "id": "edf873bf-40c4-4712-bf17-951f2d6adff4",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "content": "## Scrap News\n\n- ##  Triggers everyday at 8AM ",
+        "height": 800,
+        "width": 816
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -240,
+        192
+      ],
+      "typeVersion": 1,
+      "id": "4c619f08-7681-492b-ae50-e4fcb9845a26",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Filter By 48 Hours - Remove Duplicates\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 320,
+        "width": 512,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        592,
+        432
+      ],
+      "typeVersion": 1,
+      "id": "bbe953a0-da57-42b4-b49a-42a3265a95ab",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Rank Important AI News -  Generate the report \n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 752,
+        "width": 784,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1600,
+        384
+      ],
+      "typeVersion": 1,
+      "id": "edafbd5c-0b2a-4fce-8547-b8b105a566a0",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Send Newsletter Via email \n",
+        "height": 320,
+        "width": 336,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2592,
+        400
+      ],
+      "typeVersion": 1,
+      "id": "8eec78ac-94cf-49cd-8303-87cb4d18371b",
+      "name": "Sticky Note3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Venturebeat News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Techcrunch News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "TechnologyReview",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "artificialintelligence-news",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Mapping",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI News Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "ContentIntelligenceAgent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI News Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ContentIntelligenceAgent": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI News Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI News Agent": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "ContentIntelligenceAgent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Venturebeat News": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Techcrunch News": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "TechnologyReview": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "artificialintelligence-news": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Mapping": {
+      "main": [
+        [
+          {
+            "node": "Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "AI News Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7a8dd793-b3e0-42e8-8209-9ee3927029cf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "66c58b798d3adbdaf64a47b3041d335e10015ca13cec5104fbf9f568a82eba73"
+  },
+  "id": "6AvTRvCxdkgBnUc7",
+  "tags": []
+}
